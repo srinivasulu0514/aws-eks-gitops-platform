@@ -65,3 +65,28 @@ resource "aws_eks_node_group" "main" {
     aws_iam_role_policy_attachment.eks_ecr_read_only
   ]
 }
+
+
+# ---------------------------------------------------------
+# EKS Access Entry
+# ---------------------------------------------------------
+
+resource "aws_eks_access_entry" "admin" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = "arn:aws:iam::889033545489:user/eks-gitops-admin"
+  type          = "STANDARD"
+}
+
+# ---------------------------------------------------------
+# EKS Cluster Admin Access
+# ---------------------------------------------------------
+
+resource "aws_eks_access_policy_association" "admin" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = aws_eks_access_entry.admin.principal_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+}
