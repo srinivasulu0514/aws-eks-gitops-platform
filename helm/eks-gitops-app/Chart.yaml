@@ -1,0 +1,7 @@
+apiVersion: v2
+name: eks-gitops-app
+description: Helm chart for the AWS EKS GitOps application
+type: application
+version: 0.1.0
+appVersion: "1.0"
+

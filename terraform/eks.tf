@@ -40,7 +40,7 @@ resource "aws_eks_node_group" "main" {
 
   subnet_ids = aws_subnet.private[*].id
 
-  instance_types = ["t3.micro"]
+  instance_types = ["t3.small"]
 
   capacity_type = "ON_DEMAND"
 
