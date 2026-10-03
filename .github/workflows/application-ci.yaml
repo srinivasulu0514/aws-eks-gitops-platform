@@ -1,0 +1,82 @@
+name: Application CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "application/**"
+      - ".github/workflows/application-ci.yaml"
+
+permissions:
+  id-token: write
+  contents: write
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: eks-gitops-platform-app
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r application/requirements.txt
+
+      - name: Run application validation
+        run: |
+          python -m py_compile application/app.py
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::889033545489:role/eks-gitops-platform-github-actions-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        id: image
+        run: |
+          echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.image.outputs.tag }} \
+            ./application
+
+      - name: Push Docker image
+        run: |
+          docker push \
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.image.outputs.tag }}
+
+      - name: Update Helm image tag
+        run: |
+          sed -i 's/tag: ".*"/tag: "'${{ steps.image.outputs.tag }}'"/' \
+            helm/eks-gitops-app/values.yaml
+
+      - name: Commit updated image tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add helm/eks-gitops-app/values.yaml
+
+          git diff --cached --quiet || \
+            git commit -m "chore: update application image to ${{ steps.image.outputs.tag }}"
+
+          git push
