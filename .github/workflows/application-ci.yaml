@@ -7,7 +7,7 @@ on:
     paths:
       - "application/**"
       - ".github/workflows/application-ci.yaml"
-
+  workflow_dispatch: 
 permissions:
   id-token: write
   contents: write
