@@ -8,7 +8,7 @@ app = Flask(__name__)
 def home():
     return {
         "application": "AWS EKS GitOps Platform",
-        "message": "Hello from Kubernetes!",
+        "message": "Hello from K8s!",
         "hostname": socket.gethostname()
     }
 
